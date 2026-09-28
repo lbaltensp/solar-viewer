@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Solar Viewer
 
-## Getting Started
+A near-real-time viewer of the Sun in SDO/AIA wavelengths, built to deploy on Vercel.
+Images come from NASA's Solar Dynamics Observatory via the [Helioviewer API](https://api.helioviewer.org/docs/v2/).
 
-First, run the development server:
+See `PLAN.md` for the architecture and phases.
+
+## Status
+
+Phases 1 and 2 are done: the API routes proxy Helioviewer and re-encode frames to WebP
+with edge-cache headers, and the canvas player plays the last 1–6 h of any AIA channel in
+ping-pong order with a scrubber, speed control and keyboard shortcuts. Phase 3 adds
+brightness normalisation and gap handling; Phase 4 is the Vercel deploy.
+
+## Run locally
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# frame timestamps for the last hour of AIA 171
+curl -s 'http://localhost:3000/api/timeline?ch=171&minutes=60' | jq '{count, newestIso, latencySeconds}'
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# one 2048 px frame as WebP (take a timestamp from the list above)
+curl -s -o frame.webp -D - 'http://localhost:3000/api/frame/171/1790096433'
+```
 
-## Learn More
+## Test
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm test
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Attribution
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Images courtesy of NASA/SDO and the AIA science team, served via Helioviewer.org.
+Helioviewer is a free community service: this app polls its timeline no more often
+than every few minutes and never fetches the same frame twice (edge cache).
